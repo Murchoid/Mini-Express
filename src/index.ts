@@ -1,7 +1,7 @@
-import { jsonParser } from './core/middleware/body/jsonParser';
+import { jsonParser } from './middleware/body/jsonParser';
 import {miniExpress} from './core/mini-express';
-import { urleEncodedParser } from './core/middleware/body/urlEncodedParser';
-import { errorHandler } from './core/middleware/chain';
+import { urleEncodedParser } from './middleware/body/urlEncodedParser';
+import { errorHandler } from './middleware/chain';
 
 const app = new miniExpress();
 
