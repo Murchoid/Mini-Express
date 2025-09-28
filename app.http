@@ -1,0 +1,13 @@
+@url = http://localhost:3000
+
+###test post
+POST {{url}}/user
+Content-Type: application/json
+
+{
+    "name": "Michael kamau"
+}
+
+###simulate fail
+GET {{url}}/fail
+Content-Type: application/json

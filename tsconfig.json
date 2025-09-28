@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    /* Strictness */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictBindCallApply": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    /* Code Quality */
+    "noUnusedLocals": true,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    /* Project Structure */
+    "rootDir": "src",
+    "outDir": "dist",
+    "baseUrl": "./src",
+
+    /* Experimental maybe when I add DI containers*/
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    /* Source Maps for Debugging */
+    "sourceMap": true
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
