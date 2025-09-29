@@ -1,6 +1,8 @@
 export type Params = Record<string,string|undefined>;
 
-export type Middleware = (req: Request, res: Response, next: () => void,err?: any) => void;
+export type Middleware =
+  | ((req: Request, res: Response, next: (err?: any) => void) => void)
+  | ((err: any, req: Request, res: Response, next: (err?: any) => void) => void);
 
 export interface Request {
   method: string;

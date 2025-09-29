@@ -1,12 +1,17 @@
 @url = http://localhost:3000
 
-###test post
-POST {{url}}/user
+###test post user
+POST {{url}}/users
 Content-Type: application/json
 
 {
     "name": "Michael kamau"
 }
+
+###test user fetch with id
+GET {{url}}/users/69
+Content-Type: application/json
+
 
 ###simulate fail
 GET {{url}}/fail

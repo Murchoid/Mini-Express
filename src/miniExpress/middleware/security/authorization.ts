@@ -1,7 +1,7 @@
 import { Middleware } from "miniExpress/types";
 import { Request, Response } from "miniExpress/types";
 
-export const authorize: Middleware = (req: Request, res: Response, next) => {
+export const authorize: Middleware = (req: Request, res: Response, next: any) => {
   if (!req.headers["authorization"]) {
     res.status(401);
     res.end("Unauthorized");

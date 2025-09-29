@@ -1,6 +1,7 @@
 import { Middleware } from "miniExpress/types";
+import { Request, Response } from "miniExpress/types";
 
-export const jsonParser: Middleware = (req, res, next) => {
+export const jsonParser: Middleware = (req: Request, res: Response , next: any) => {
     if (req.headers["content-type"]?.includes("application/json")) {
         let data = "";
 

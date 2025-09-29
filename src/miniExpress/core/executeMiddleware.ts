@@ -5,7 +5,7 @@ export const executeMiddleware = (
   req: Request,
   res: Response,
   finalHandler: () => void,
-  error: any = null
+  error: any = null,
 ) => {
   let index = 0;
 
@@ -17,13 +17,13 @@ export const executeMiddleware = (
 
       // error case: only run error middlewares (4 args)
       if (isError && middleware.length === 4) {
-        middleware(req, res, run, err);
+        (middleware as any)(err,req, res, run);
         return;
       }
 
       // normal case: only run regular middlewares ( <= 3 args)
       if (!isError && middleware.length < 4) {
-        middleware(req, res, run);
+        (middleware as any)(req, res, run);
         return;
       }
 

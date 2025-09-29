@@ -1,17 +1,47 @@
-import { Middleware } from "miniExpress/types";
+import { Middleware } from "../types";
 import http from 'http'
 import { ResponseImpl } from "../utils/requestImpl";
 import { createRequest } from "../utils/createRequest";
 import { executeMiddleware } from "./executeMiddleware";
+import { Router } from "./router";
+import { Request, Response } from "../types";
+import { matchPaths } from "../utils/matchPaths";
 
 export class miniExpress {
 
-    private middlewares: Middleware[]= [];
+    private middlewares: Middleware[] = [];
     private routes: { method: string; path: string; middlewares: Middleware[]; handler: Middleware }[] = [];
 
-    public use(middleware: Middleware) {
-        this.middlewares.push(middleware);
+    public use(path: string, handler: Middleware | Router): void;
+    public use(handler: Middleware | Router): void;
+
+    public use(arg1: string | Middleware | Router, arg2?: Middleware | Router): void {
+        if (typeof arg1 === "string") {
+            const path = arg1;
+            const handler = arg2!;
+            this.middlewares.push((req: Request, res: Response, next:(err ?: any) => void) => {
+                if (req.path.startsWith(path)) {
+                    if (typeof handler === "function") {
+                        (handler as any)(req, res, next);
+                    } else {
+                        handler.handle(req, res, next);
+                    }
+                } else {
+                    next();
+                }
+            });
+        } else {
+            const handler = arg1;
+            if (typeof handler === "function") {
+                this.middlewares.push(handler);
+            } else {
+                this.middlewares.push((req: Request, res: Response, next: ()=> void) =>
+                    handler.handle(req, res, next)
+                );
+            }
+        }
     }
+
 
     public get(path: string, ...handlers: Middleware[]) {
         const middlewares = handlers.slice(0, -1);
@@ -45,44 +75,15 @@ export class miniExpress {
         server.listen(port, handler);
     }
 
-    private matchPaths(requestPath: string, routePath: string) {
-        const routeSegment = routePath.split("/").filter(Boolean);
-        const requestSegment = requestPath.split("/").filter(Boolean);
-
-        const params: Record<string, string> = {};
-
-        if (routeSegment.length !== requestSegment.length) {
-            return { matched: false, params: {} };
-        }
-
-        for (let i = 0; i < routeSegment.length; i++) {
-            const routePart = routeSegment[i];
-            const reqPart = requestSegment[i];
-
-            if (routePart.startsWith(":")) {
-                const paramName = routePart.slice(1);
-                params[paramName] = reqPart;
-            } else if (routePart !== reqPart) {
-                return { matched: false, params: {} };
-            }
-        }
-
-        return {
-            matched: true,
-            params
-        }
-    }
-
     private handleRequest(req: any, res: any) {
         const request = createRequest(req);
         const response = new ResponseImpl(res);
-
         executeMiddleware(this.middlewares, request, response, () => {
             let matchedRoute: any = null;
 
             for (const route of this.routes) {
                 if (route.method === request.method) {
-                    const { matched, params } = this.matchPaths(request.path, route.path);
+                    const { matched, params } = matchPaths(request.path, route.path);
                     if (matched) {
                         matchedRoute = { ...route, params };
                         break;
@@ -98,12 +99,21 @@ export class miniExpress {
             request.params = matchedRoute.params;
 
             executeMiddleware(matchedRoute.middlewares, request, response, () => {
-                try {
-                    matchedRoute.handler(request, response, () => { });
-                } catch (err) {
-                    executeMiddleware(this.middlewares, request, response, () => { }, err);
-                }
+                const next = (err?: any) => {
+                    if (err) {
+                        executeMiddleware(this.middlewares, request, response, () => { }, err);
+                    } else {
+                        try {
+                            matchedRoute.handler(request, response, next);
+                        } catch (err) {
+                            executeMiddleware(this.middlewares, request, response, () => { }, err);
+                        }
+                    }
+                };
+
+                next();
             });
+
         });
     }
 

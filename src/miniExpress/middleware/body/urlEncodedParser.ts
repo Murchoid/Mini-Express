@@ -1,6 +1,7 @@
 import { Middleware } from "miniExpress/types";
+import { Request, Response } from "miniExpress/types";
 
-export const urleEncodedParser: Middleware = (req, res, next) => {
+export const urleEncodedParser: Middleware = (req: Request, res: Response , next: any) => {
     if (req.headers["content-type"]?.includes("application/x-www-form-urlencoded")) {
         let data = "";
         req.raw.on("data", chunk => {
