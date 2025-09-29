@@ -1,6 +1,6 @@
 import { IncomingMessage } from "http";
 import { parse } from "url";
-import { Request } from "../../types";
+import { Request } from "../types";
 
 export const createRequest = (req: IncomingMessage): Request => {
   const { pathname, query } = parse(req.url || "", true);

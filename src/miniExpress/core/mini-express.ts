@@ -1,8 +1,8 @@
-import { Middleware } from "types";
+import { Middleware } from "miniExpress/types";
 import http from 'http'
-import { ResponseImpl } from "./utils/requestImpl";
-import { createRequest } from "./utils/createRequest";
-import { executeMiddleware } from "../middleware/executeMiddleware";
+import { ResponseImpl } from "../utils/requestImpl";
+import { createRequest } from "../utils/createRequest";
+import { executeMiddleware } from "./executeMiddleware";
 
 export class miniExpress {
 

@@ -1,5 +1,5 @@
 import { ServerResponse } from "http";
-import { Response } from "types";
+import { Response } from "miniExpress/types";
 
 export class ResponseImpl implements Response {
   raw: ServerResponse;

@@ -1,4 +1,4 @@
-import { Middleware, Request, Response } from "types";
+import { Middleware, Request, Response } from "miniExpress/types";
 
 export const executeMiddleware = (
   middlewares: Middleware[],
