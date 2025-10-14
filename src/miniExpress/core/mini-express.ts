@@ -69,11 +69,10 @@ export class miniExpress {
             this.middlewares.push((req: Request, res: Response, next: (err?: any) => void) => {
                 if (req.path.startsWith(basePath)) {
                     const originalPath = req.path;
-                    (req as any).originalPath = originalPath;
-                    (req as any).path = originalPath.slice(basePath.length) || '/';
+                    req.path = originalPath.slice(basePath.length) || '/';
 
                     (middleware as RegularMiddleware )(req, res, (err?: any) => {
-                        (req as any).path = originalPath;
+                        req.path = originalPath;
                         next(err);
                     });
                 } else {
