@@ -12,7 +12,11 @@ Content-Type: application/json
 GET {{url}}/users/69
 Content-Type: application/json
 
-
 ###simulate fail
 GET {{url}}/fail
+Content-Type: application/json
+
+
+###simulate fail
+GET {{url}}/async-fail
 Content-Type: application/json

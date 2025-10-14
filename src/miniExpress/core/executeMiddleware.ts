@@ -1,4 +1,4 @@
-import { Middleware, Request, Response } from "miniExpress/types";
+import { ErrorMiddleware, Middleware, RegularMiddleware, Request, Response } from "miniExpress/types";
 
 export const executeMiddleware = (
   middlewares: Middleware[],
@@ -17,13 +17,13 @@ export const executeMiddleware = (
 
       // error case: only run error middlewares (4 args)
       if (isError && middleware.length === 4) {
-        (middleware as any)(err,req, res, run);
+        (middleware as ErrorMiddleware)(err, req, res, run);
         return;
       }
 
       // normal case: only run regular middlewares ( <= 3 args)
       if (!isError && middleware.length < 4) {
-        (middleware as any)(req, res, run);
+        (middleware as RegularMiddleware)(req, res, run);
         return;
       }
 

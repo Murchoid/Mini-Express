@@ -1,16 +1,16 @@
-import { Middleware } from "../types";
+import { Middleware, RegularMiddleware } from "../types";
 import http from 'http'
 import { ResponseImpl } from "../utils/requestImpl";
 import { createRequest } from "../utils/createRequest";
 import { executeMiddleware } from "./executeMiddleware";
-import { Router } from "./router";
 import { Request, Response } from "../types";
 import { matchPaths } from "../utils/matchPaths";
+import { asyncHandler } from "../utils/asyncWrapper";
 
 export class miniExpress {
 
-    private middlewares: Middleware[] = [];
-    private routes: { method: string; path: string; middlewares: Middleware[]; handler: Middleware }[] = [];
+    protected middlewares: Middleware[] = [];
+    protected routes: { method: string; path: string; middlewares: Middleware[]; handler: Middleware }[] = [];
 
     public use(path: string, handler: Middleware | Router): void;
     public use(handler: Middleware | Router): void;
@@ -19,33 +19,81 @@ export class miniExpress {
         if (typeof arg1 === "string") {
             const path = arg1;
             const handler = arg2!;
-            this.middlewares.push((req: Request, res: Response, next:(err ?: any) => void) => {
-                if (req.path.startsWith(path)) {
-                    if (typeof handler === "function") {
-                        (handler as any)(req, res, next);
+
+            if (handler instanceof Router) {
+                // MOUNT THE ROUTER 
+                this.mountRouter(path, handler);
+            } else {
+                // Regular middleware with path prefix
+                this.middlewares.push((req: Request, res: Response, next: (err?: any) => void) => {
+                    if (req.path.startsWith(path)) {
+                        // Store original path and temporarily adjust for middleware
+                        const originalPath = req.path;
+                        (req as any).path = originalPath.slice(path.length) || '/';
+
+                        (handler as any)(req, res, (err?: any) => {
+                            // Restore original path
+                            (req as any).path = originalPath;
+                            next(err);
+                        });
                     } else {
-                        handler.handle(req, res, next);
+                        next();
                     }
-                } else {
-                    next();
-                }
-            });
+                });
+            }
+
         } else {
             const handler = arg1;
-            if (typeof handler === "function") {
-                this.middlewares.push(handler);
+            if (handler instanceof Router) {
+                // Mount router at root path
+                this.mountRouter("/", handler);
             } else {
-                this.middlewares.push((req: Request, res: Response, next: ()=> void) =>
-                    handler.handle(req, res, next)
-                );
+                // Global middleware
+                this.middlewares.push(handler);
             }
         }
     }
 
+    private mountRouter(basePath: string, router: Router): void {
+        // Add all routes from the router with the base path prefix
+        router.routes.forEach(route => {
+            const prefixedPath = this.normalizePath(basePath + route.path);
+            this.routes.push({
+                ...route,
+                path: prefixedPath
+            });
+        });
+
+        // Also add the router's middlewares with path prefix
+        router.middlewares.forEach(middleware => {
+            this.middlewares.push((req: Request, res: Response, next: (err?: any) => void) => {
+                if (req.path.startsWith(basePath)) {
+                    const originalPath = req.path;
+                    (req as any).originalPath = originalPath;
+                    (req as any).path = originalPath.slice(basePath.length) || '/';
+
+                    (middleware as RegularMiddleware )(req, res, (err?: any) => {
+                        (req as any).path = originalPath;
+                        next(err);
+                    });
+                } else {
+                    next();
+                }
+            });
+        });
+    }
+
+    private normalizePath(path: string): string {
+        return path.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+    }
 
     public get(path: string, ...handlers: Middleware[]) {
         const middlewares = handlers.slice(0, -1);
-        const handler = handlers[handlers.length - 1];
+        let handler = handlers[handlers.length - 1];
+
+        if (handler.constructor.name === "AsyncFunction") {
+            handler = asyncHandler(handler);
+        }
 
         this.routes.push({
             method: "GET",
@@ -57,7 +105,11 @@ export class miniExpress {
 
     public post(path: string, ...handlers: Middleware[]) {
         const middlewares = handlers.slice(0, -1);
-        const handler = handlers[handlers.length - 1];
+        let handler = handlers[handlers.length - 1];
+
+        if (handler.constructor.name === "AsyncFunction") {
+            handler = asyncHandler(handler);
+        }
 
         this.routes.push({
             method: "POST",
@@ -75,10 +127,14 @@ export class miniExpress {
         server.listen(port, handler);
     }
 
-    private handleRequest(req: any, res: any) {
+    protected handleRequest(req: any, res: any, next?: (err?: any) => void) {
         const request = createRequest(req);
         const response = new ResponseImpl(res);
+
+        console.log(this.routes);
+        // First execute global middlewares
         executeMiddleware(this.middlewares, request, response, () => {
+            // Then try to find matching route
             let matchedRoute: any = null;
 
             for (const route of this.routes) {
@@ -92,29 +148,42 @@ export class miniExpress {
             }
 
             if (!matchedRoute) {
+                if (next) return next(); 
                 response.status(404).end("Not Found!");
                 return;
             }
 
             request.params = matchedRoute.params;
 
+            // Execute route-specific middlewares and then the handler
             executeMiddleware(matchedRoute.middlewares, request, response, () => {
-                const next = (err?: any) => {
-                    if (err) {
-                        executeMiddleware(this.middlewares, request, response, () => { }, err);
-                    } else {
-                        try {
-                            matchedRoute.handler(request, response, next);
-                        } catch (err) {
-                            executeMiddleware(this.middlewares, request, response, () => { }, err);
+                try {
+                    matchedRoute.handler(request, response, (err?: any) => {
+                        if (err) {
+                            // Look for error handling middlewares
+                            const errorMiddlewares = this.middlewares.filter(m => m.length === 4);
+                            if (errorMiddlewares.length > 0) {
+                                executeMiddleware(errorMiddlewares, request, response, () => {
+                                    response.status(500).json({ error: "Unhandled Error" });
+                                }, err);
+                            } else {
+                                response.status(500).json({ error: "Internal Server Error" });
+                            }
                         }
+                    });
+                } catch (err) {
+                    const errorMiddlewares = this.middlewares.filter(m => m.length === 4);
+                    if (errorMiddlewares.length > 0) {
+                        executeMiddleware(errorMiddlewares, request, response, () => {
+                            response.status(500).json({ error: "Unhandled Error" });
+                        }, err);
+                    } else {
+                        response.status(500).json({ error: "Internal Server Error" });
                     }
-                };
-
-                next();
+                }
             });
-
         });
     }
-
 }
+
+export class Router extends miniExpress {}
