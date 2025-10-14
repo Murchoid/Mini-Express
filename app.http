@@ -5,8 +5,14 @@ POST {{url}}/users
 Content-Type: application/json
 
 {
-    "name": "Michael kamau"
+    "id": 4,
+    "name": "Michael kamau",
+    "email": "mike@gmail.com"
 }
+
+###get all users
+GET {{url}}/users
+Content-Type: application/json
 
 ###test user fetch with id
 GET {{url}}/users/69

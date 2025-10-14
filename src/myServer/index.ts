@@ -25,17 +25,6 @@ app.get('/', (req: Request, res: Response ) => {
     res.status(200).json({message: "Hello world!"});
 });
 
-
-app.get("/fail", (req: Request, res: Response , next: any) => {
-  setTimeout(() => {
-    next (new Error("Boom!"));
-  }, 10);
-});
-
-app.get("/async-fail", async (req: Request, res: Response , next: any) => {
-  throw new Error("Boom async error!");
-});
-
 app.listen(3000, () => {
     console.log("Server listening in port 3000");
 });
