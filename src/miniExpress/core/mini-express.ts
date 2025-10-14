@@ -29,11 +29,11 @@ export class miniExpress {
                     if (req.path.startsWith(path)) {
                         // Store original path and temporarily adjust for middleware
                         const originalPath = req.path;
-                        (req as any).path = originalPath.slice(path.length) || '/';
+                        req.path = originalPath.slice(path.length) || '/';
 
-                        (handler as any)(req, res, (err?: any) => {
+                        (handler as RegularMiddleware)(req, res, (err?: any) => {
                             // Restore original path
-                            (req as any).path = originalPath;
+                            req.path = originalPath;
                             next(err);
                         });
                     } else {
@@ -131,7 +131,6 @@ export class miniExpress {
         const request = createRequest(req);
         const response = new ResponseImpl(res);
 
-        console.log(this.routes);
         // First execute global middlewares
         executeMiddleware(this.middlewares, request, response, () => {
             // Then try to find matching route
